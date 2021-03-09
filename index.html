@@ -15,27 +15,25 @@
 <body>
   <div class="container">
     <div id="nav"></div>
+
     <div class="row">
-      <!-- 第一列 -->
-      <div class="col-md-4">
+      <div class="col-md-12">
         <h3>本地服务</h3>
-        <div class="list-group" id="lg_1">
-          
-        </div>
+        <div class="list-group" style="display:inline-block" id="lg_1"></div>
       </div>
-      <!-- 第二列 -->
-      <div class="col-md-4">
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
         <h3>远程服务</h3>
-        <div class="list-group" id="lg_2">
-          
-        </div>
+        <div class="list-group" style="display:inline-block" id="lg_2"></div>
       </div>
-      <!-- 第三列 -->
-      <div class="col-md-4">
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
         <h3>其他服务</h3>
-        <div class="list-group" id="lg_3">
-          
-        </div>
+        <div class="list-group" style="display:inline-block" id="lg_3"></div>
       </div>
     </div>
   </div>
@@ -44,16 +42,16 @@
 <script>
   $("#nav").load("master.html");
 
-  function addTags(id,list){
+  function addTags(id, list) {
     var str = "";
     for (var p in list) {
-    str += '<a href="'+list[p]
-    +'" class="list-group-item list-group-item-action" target="_blank">'
-    +p+'</a>';
+      str += '<a href="' + list[p]
+        + '" class="btn btn-info" style="margin:5px" target="_blank">'
+        + p + '</a>';
     }
     document.getElementById(id).innerHTML = str;
   }
-  
+
   var list1 = {
     "博客": "https://makef.icu:3003",
     "聊天室": "http://makef.icu:3005",
@@ -64,28 +62,28 @@
     "h探针": "http://makef.icu:3000/holy_lance.php",
     "frp监控": "http://makef.icu:3100",
     "数据库": "http://makef.icu:3000/mysql",
-    "docker管理":"http://192.168.2.227:9000",
-    
+    "docker管理": "http://192.168.2.227:9000",
+
   }
 
-  addTags("lg_1",list1);
+  addTags("lg_1", list1);
 
   var list2 = {
-    "aria2":"http://pro.makef.icu/ariang/",
+    "aria2": "http://pro.makef.icu/ariang/",
   }
 
-  addTags("lg_2",list2);
+  addTags("lg_2", list2);
 
   var list3 = {
     "路由": "http://makef.icu:8081",
-    "测速文件":"https://pro.makef.icu/1000m.bin",
+    //"测速文件":"https://pro.makef.icu/1000m.bin",
   }
 
-  addTags("lg_3",list3);
+  addTags("lg_3", list3);
 
-  
 
-  
+
+
 </script>
 
 </html>
