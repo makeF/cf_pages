@@ -13,18 +13,23 @@
     <!-- Aplayer -->
     <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script> -->
-    
+
 </head>
 
 <body class="container">
     <div id="nav"></div>
-    <div class="row" style="margin-top:20%;">
-        <!-- 左半页 -->
+    <div class="row" style="margin-top:5%;">
+
         <div class="col-md-6">
-            <audio id="ap" controls src=""></audio>
-        </div>
-        <!-- 右半页 -->
-        <div class="col-md-6">
+            <!-- 音频进度条 -->
+            <form action="" class="form-inline">
+                <div class="form-group">
+                    <audio id="ap"  controls src=""></audio>
+                    <h3 id="t-show" style="margin-left: 35px;" class="text-success">00:00</h3>
+                </div>
+            </form>
+
+            <!-- 音频控制栏 -->
 
             <form>
                 <!-- 音乐地址 -->
@@ -34,32 +39,37 @@
                         <button type="button" class="btn btn-outline-secondary " onclick="setSrc()">设置地址</button>
                     </div>
                 </div>
-                <hr/>
+                <hr />
 
                 <!-- 播放时间 -->
                 <div class="input-group mt-3 mb-3">
                     <input id="curtime" type="text" class="form-control" placeholder="播放时间">
                     <div class="input-group-prepend">
-                        <button type="button" class="btn btn-outline-secondary " onclick="getTime()">现在时间</button>
                         <button type="button" class="btn btn-outline-secondary " onclick="setTime(1,1)">设置时间</button>
+                        <button type="button" class="btn btn-outline-secondary " onclick="getTime()">现在时间</button>
                     </div>
                 </div>
                 <hr style="border: transparent;" />
 
                 <!-- 快进按钮组 -->
                 <div class="btn-group">
-                    <button type="button" class="btn btn-outline-secondary" onclick="setTime(-30)"> < 30 </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="setTime(-5)"> < 5 </button>
-                    <button type="button" class="btn btn-outline-secondary" onclick="setTime(-1)"> < 1 </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="setTime(-0.1)"> < 0.1 </button></>
-                  </div>
-                  <div class="btn-group" style="float: right">
+                    <button type="button" class="btn btn-outline-secondary" onclick="setTime(-30)">
+                        < 30 </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="setTime(-5)">
+                                < 5 </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="setTime(-1)">
+                                        < 1 </button>
+                                            <button type="button" class="btn btn-outline-secondary"
+                                                onclick="setTime(-0.1)">
+                                                < 0.1 </button></>
+                </div>
+                <div class="btn-group" style="float: right">
                     <button type="button" class="btn btn-outline-secondary" onclick="setTime(0.1)"> 0.1 > </button>
                     <button type="button" class="btn btn-outline-secondary" onclick="setTime(1)"> 1> </button>
                     <button type="button" class="btn btn-outline-secondary" onclick="setTime(5)"> 5> </button>
                     <button type="button" class="btn btn-outline-secondary" onclick="setTime(30)"> 30 > </button>
-                  </div>
-                
+                </div>
+
             </form>
 
         </div>
@@ -69,34 +79,50 @@
 <script>
     //加载导航
     $("#nav").load("/master.html");
-    
+
     //获得时间
     function getTime() {
         var ap = document.getElementById('ap');
         var curtime = document.getElementById('curtime');
         curtime.value = ap.currentTime;
+        
     }
 
     //设置地址
     function setSrc() {
-        var urlstr = document.getElementById('url').value;
         var ap = document.getElementById('ap');
+        var urlstr = document.getElementById('url').value;
         ap.src = urlstr;
         ap.play();
     }
 
     //设置时间
-    function setTime(time,ctl) {
+    function setTime(time, ctl) {
         var ap = document.getElementById('ap');
         var curtime = document.getElementById('curtime');
-        if(ctl != 1){
+        if (ctl != 1) {
             ap.currentTime += time;
             curtime.value = ap.currentTime;
         }
-        else{
+        else {
             ap.currentTime = curtime.value;
         }
         ap.play();
     }
+
+    //刷新计时
+    function tickShow() {
+        var ap = document.getElementById('ap');
+        var curtime = document.getElementById('curtime');
+        if(ap.src.slice(0,4) == "http" && curtime != document.activeElement) {
+            var crtime = ap.currentTime.toString()
+            var tshow = document.getElementById('t-show');
+            
+            curtime.value = crtime.substr(0,crtime.length-4);;
+            tshow.innerText = crtime.substring(0,crtime.length-4);
+        }
+    }
+    self.setInterval("tickShow()",1000);
 </script>
+
 </html>
