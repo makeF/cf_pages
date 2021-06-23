@@ -86,23 +86,12 @@ var xmind = new janvas.Canvas({
       isDelta: function () {
         return this._delta.x || this._delta.y;
       },
-      beforeUpdate: function () {
-        this._before.copy(this._offset);
-      },
-      update: function (ratio) {
-        this.set(this._before.x + this._delta.x * this._ease(ratio),
-          this._before.y + this._delta.y * this._ease(ratio));
-      },
-      afterUpdate: function () {
-        this.beforeUpdate();
-      },
-      _ease: janvas.Utils.ease.out.quad,
       eventdown: function () {
         this._conflict.init(0, 0);
-        if (!this.$isRunning) this.beforeUpdate();
+        if (!this.animation.isRunning()) this.animation.beforeUpdate();
       },
       eventmove: function (moveX, moveY) {
-        if (this.$isRunning) this._conflict.init(moveX, moveY);
+        if (this.animation.isRunning()) this._conflict.init(moveX, moveY);
         else this.set(this._before.x + moveX - this._conflict.x,
           this._before.y + moveY - this._conflict.y);
       },
@@ -191,18 +180,18 @@ var xmind = new janvas.Canvas({
         apply: function () { // TODO: 整体 x, y, width, height 属性取整
           var style = this.style, x = this.x, y = this.y,
             borderX = x - style.borderOffset, borderY = y - style.borderOffset;
-          this.background.initXY(x, y);
-          this.border.initXY(borderX, borderY);
+          this.background.setStart(x, y);
+          this.border.setStart(borderX, borderY);
           this.borderX = borderX - style._borderOffset;
           this.borderY = borderY - style._borderOffset;
           for (var i = 0, length = this.values.length; i < length; i++) {
-            this.texts[i].initXY(x + style.paddingLeft,
+            this.texts[i].setStart(x + style.paddingLeft,
               y + style.paddingTop + i * style.lineHeight);
           }
         },
         collidesWith: function (rect) {
           return janvas.Collision.rect(this.x, this.y, this.right, this.bottom,
-            rect._left, rect._top, rect._right, rect._bottom);
+            rect.getLeft(), rect.getTop(), rect.getRight(), rect.getBottom());
         },
         draw: function () {
           this.background.fill();
@@ -290,8 +279,8 @@ var xmind = new janvas.Canvas({
           length = values.length;
           while (texts.length < length) {
             var text = new janvas.Text(this.$ctx, 0, 0);
-            text.getStyle().setFillStyle(style.color)
-              .setFont(style.font).setTextBaseline("top");
+            text.getStyle().setFillStyle(style.color).setFont(style.font)
+              .setTextAlign("left").setTextBaseline("top");
             texts.push(text);
           }
           this.background
@@ -311,7 +300,7 @@ var xmind = new janvas.Canvas({
           this.layoutY += 0;
         },
         eventmove: function (x, y) {
-          return this.isMousein = this.background.isPointInPath(x, y);
+          return this.isMousein = this.background.isPointInPath$1(x, y);
         },
         select: function () {
           this.isSelected = true;
@@ -448,10 +437,10 @@ var xmind = new janvas.Canvas({
       Node.Link.prototype = {
         apply: function () {
           var target = this.target, style = this.style, arc = this.arc;
-          this._link.initXY(target.right, target.cy);
-          arc.initXY(target.right + style.spacing, target.cy);
-          this.text.initXY(arc.getStartX(), target.cy);
-          this.line.initXY(arc.getStartX() - style.arcLineLength / 2, target.cy)
+          this._link.setStart(target.right, target.cy);
+          arc.setStart(target.right + style.spacing, target.cy);
+          this.text.setStart(arc.getStartX(), target.cy);
+          this.line.setStart(arc.getStartX() - style.arcLineLength / 2, target.cy)
             .setEndX(arc.getStartX() + style.arcLineLength / 2).setEndY(target.cy);
           if (target.length) {
             this._left = target.right;
@@ -470,13 +459,15 @@ var xmind = new janvas.Canvas({
           }
         },
         draw: function () {
-          this._link.stroke();
-          if (this.target.collapse) {
-            this.arc.fillStroke();
-            this.text.fill();
-          } else if (this.target.isMousein || this.isMousein) {
-            this.arc.fillStroke();
-            this.line.stroke();
+          if (this.target.length) {
+            this._link.stroke();
+            if (this.target.collapse) {
+              this.arc.fillStroke();
+              this.text.fill();
+            } else if (this.target.isMousein || this.isMousein) {
+              this.arc.fillStroke();
+              this.line.stroke();
+            }
           }
         },
         eventdown: function () {
@@ -484,7 +475,7 @@ var xmind = new janvas.Canvas({
         },
         eventmove: function (x, y) {
           if (this.target.length === 0) return false;
-          if (this.isMousein !== (this.target.collapse ? this.arc.isPointInPath(x, y) :
+          if (this.isMousein !== (this.target.collapse ? this.arc.isPointInPath$1(x, y) :
             x >= this._left && x <= this._right && y >= this.target.y && y <= this.target.bottom)) {
             this.arc.getStyle().setFillStyle((this.isMousein = !this.isMousein) ?
               this.style.backgroundMousein : this.style.backgroundColor);
@@ -493,7 +484,7 @@ var xmind = new janvas.Canvas({
         },
         _collidesWith: function (rect) {
           return janvas.Collision.rect(this._left, this._top, this._right, this._bottom,
-            rect._left, rect._top, rect._right, rect._bottom);
+            rect.getLeft(), rect.getTop(), rect.getRight(), rect.getBottom());
         },
         _noCollision: function () {
           return false;
@@ -545,8 +536,8 @@ var xmind = new janvas.Canvas({
         }
       };
 
-      function _Link(ctx, sx, sy, children, cx, cy) {
-        janvas.Shape.call(this, ctx, sx, sy, cx, cy);
+      function _Link(ctx, sx, sy, children, ox, oy) {
+        janvas.Shape.call(this, ctx, sx, sy, ox, oy);
         this.children = children;
       }
 
@@ -563,8 +554,8 @@ var xmind = new janvas.Canvas({
             if (this._collapse) return;
             for (i = 0; i < this._length; i++) {
               child = children[i];
-              ex = child.x - this.cx;
-              ey = child.cy - this.cy;
+              ex = child.x - this.ox;
+              ey = child.cy - this.oy;
               if (Math.abs(ey - ty) < this.arcToRadius) {
                 ctx.moveTo(tx, ey);
                 ctx.lineTo(ex, ey);
@@ -822,12 +813,12 @@ var xmind = new janvas.Canvas({
           if (this.height < bind.height) this.setHeight(bind.height);
           this.oninput(bind);
         },
-        initXY: function (x, y) {
+        setStart: function (x, y) {
           this.border.style.left = (this.x = x) + Hacker.unit;
           this.border.style.top = (this.y = y) + Hacker.unit;
         },
         follow: function () {
-          this.initXY(this._bind.borderX, this._bind.borderY);
+          this.setStart(this._bind.borderX, this._bind.borderY);
         },
         setWidth: function (width) {
           this.textarea.style.width = (this.width = width) + Hacker.unit;
@@ -954,9 +945,22 @@ var xmind = new janvas.Canvas({
       this.operation = new this.Operation();
       this.root = this.parse(this.data);
       this.point.locate(this.$width / 2, this.$height / 2);
+      this.point.animation = new janvas.Animation(
+        this.$raf, 200, 0,
+        function () { // beforeUpdate
+          this._before.copy(this._offset);
+        }.bind(this.point),
+        function (ratio) { // onUpdate(ratio)
+          var ease = janvas.Utils.ease.out.quad;
+          this.set(this._before.x + this._delta.x * ease(ratio),
+            this._before.y + this._delta.y * ease(ratio));
+        }.bind(this.point),
+        function () { // afterUpdate(forward)
+          this.beforeUpdate();
+        });
       this.box = new janvas.Rect(this.$ctx, 0, 0, 0, 0);
       this._nextDraw = janvas.Utils.nextTick(this.draw);
-      janvas.Animate.mixin(this.point, this.$raf, 200);
+      this.imageData = new janvas.ImageData(this.$ctx, 0, 0);
     },
     _initStyles: function () {
       this.background.getStyle().setFillStyle(this.style.backgroundColor);
@@ -1138,18 +1142,14 @@ var xmind = new janvas.Canvas({
       } else {
         point.delta(this.$width / 2 - node.cx, this.$height / 2 - node.cy);
       }
-      if (point.isDelta()) {
-        point.$start();
-      } else {
-        point.$stop(true);
-        if (center === void (0)) this._nextDraw();
-      }
+      if (point.isDelta()) point.animation.start();
+      else if (center === void (0)) this._nextDraw();
     },
     resize: function () {
       this.background.setWidth(this.$width).setHeight(this.$height);
     },
     update: function (timestamp, interval) {
-      this.point.$update(interval);
+      this.point.animation.update(interval);
     },
     draw: function () {
       this.background.fill();
@@ -1207,7 +1207,7 @@ var xmind = new janvas.Canvas({
       var node = this._garbage.pop();
       node ? node.reset() : node = new this.Node(this.$ctx);
       node.value = value;
-      node.collapse = collapse || false;
+      node.collapse = !!collapse;
       return node;
     },
     cursor: function (cursor) {
@@ -1230,7 +1230,7 @@ var xmind = new janvas.Canvas({
               if (this._node === this.root) this.point.eventdown();
             } else {
               this.cursor("default");
-              this.box.initXY(ev.$x, ev.$y);
+              this.box.setStart(ev.$x, ev.$y);
             }
           }
           break;
@@ -1427,7 +1427,7 @@ var xmind = new janvas.Canvas({
             if (ctrl.collapse) ctrl.collapse = false;
             ctrl.appendChild(next);
           }.bind(this));
-          break;
+          break; // TODO: 复制和粘贴操作可以考虑进入 hacker 的逻辑，使用 execCommand 方式
         case "d":
           navigator.clipboard.writeText(this.serialize(ctrl, this.format.markdown));
           if ((parent = ctrl.parent) === null) return;
@@ -1456,12 +1456,15 @@ var xmind = new janvas.Canvas({
           this.selector.select(this.root);
           break;
         case "o": // open file
-          if (this.operation.hasChanged() && confirm("你需要保存当前修改吗？")) this._hotkeyCtrl("s");
+          if (this.operation.hasChanged() && confirm("需要保存您所做的更改吗？")) this._hotkeyCtrl("s");
           else this.input.click();
           break;
         case "s": // save file
           this.operation.stamp();
           this.save(); // TODO: 需要处理 Ctrl+S/O 的数据格式压缩问题
+          break;
+        case "S":
+          this.saveAsImage(this.root);
           break;
         case "z":
           this.operation.prev();
@@ -1500,8 +1503,7 @@ var xmind = new janvas.Canvas({
     wheel: function (ev) {
       if (ev.ctrlKey) return;
       ev.preventDefault();
-      var delta = ev.deltaY < 0 ? 100 : -100;
-      ev.shiftKey ? this.point.add(delta, 0) : this.point.add(0, delta);
+      ev.shiftKey ? this.point.add(-ev.deltaY, 0) : this.point.add(-ev.deltaX, -ev.deltaY);
       this.draw();
     },
     // TODO: 全局 blur 时节点边框颜色修改
@@ -1573,8 +1575,36 @@ var xmind = new janvas.Canvas({
       });
       return result.substr(0, result.length - format.suffix.length);
     },
-    saveAsImage: function () {
-      // janvas.ImageData.saveAsImage(filename, type);
+    saveAsImage: function (root) {
+      var left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity, topNode;
+      this._bfs(root, function (node) {
+        if (node.x < left) left = node.x;
+        if (node.y < top) top = node.y, topNode = node;
+        if (node.right > right) right = node.right;
+        if (node.bottom > bottom) bottom = node.bottom;
+      });
+      var padding = this.style.centralSpacing,
+        offsetX = padding - root.x,
+        offsetY = padding - topNode.y,
+        dpr = this.$dpr, canvas = this.$canvas,
+        width = padding * 2 + right - left,
+        height = padding * 2 + bottom - top;
+      canvas.style.width = (width = (canvas.width = Math.round(width * dpr)) / dpr) + "px";
+      canvas.style.height = (height = (canvas.height = Math.round(height * dpr)) / dpr) + "px";
+      width = Math.round(width);
+      height = Math.round(height);
+      this._$resetTransform();
+      this._$resetStyle();
+      this.point.add(offsetX, offsetY);
+      this.background.setWidth(width).setHeight(height).fill();
+      this._bfs(root, function (node) {
+        node.link.draw();
+        node.draw();
+      });
+      this.imageData.setImageData(0, 0, width * dpr, height * dpr).saveAsImage(root.getValue(), "image/jpeg");
+      this.point.add(-offsetX, -offsetY);
+      this._$resize().resize();
+      this.draw();
     },
     load: function (file) {
       if (file) {
